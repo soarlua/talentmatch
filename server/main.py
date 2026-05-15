@@ -7,7 +7,8 @@ from typing import Any, Dict, List
 # Local imports
 from models import JobDescription
 from mock_db import MOCK_CANDIDATES
-from agents import create_matching_crew
+from agents import create_scoring_crew, create_explainer_crew
+
 
 # Initialize app
 app = FastAPI(title="TalentMatch AI - Matcher API")
@@ -214,37 +215,47 @@ async def health_check():
     """Checks if the API is online."""
     return {"status": "ok", "message": "Server is running!"}
 
-# 2. Get Candidate Info
+# 2. Get Candidate Info (Agora com AI on-demand)
 @app.get("/candidates/{candidate_id}")
 async def get_candidate(candidate_id: str):
-    """Returns details for a specific candidate."""
-    
+    """Devolve os detalhes de um candidato e gera o summary com IA."""
     candidate = MOCK_CANDIDATES.get(str(candidate_id))
 
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
 
-    structured = structure_candidate(candidate)
-    return structured
+    try:
+        # Iniciar o agente explicador para gerar a descrição
+        explainer_crew = create_explainer_crew()
+        summary_result = explainer_crew.kickoff(inputs={
+            "candidate_data": json.dumps(candidate, ensure_ascii=False)
+        })
 
+        # Devolver a estrutura com o novo summary
+        return {
+            "candidate": {
+                "id": candidate["id"],
+                "name": candidate["name"],
+                "summary": str(summary_result).strip(),
+                "experienceYears": int(re.search(r"(\d+)", candidate["experience"]).group(1)) if re.search(r"(\d+)", candidate["experience"]) else 0
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# 3. Match Candidates (CrewAI)
+# 3. Match Candidates (Apenas 3 agentes)
 @app.post("/match")
 async def match_candidates(job: JobDescription):
-    """Submits a job and AI returns candidate ranking."""
     try:
-        matching_crew = create_matching_crew()
+        matching_crew = create_scoring_crew()
         result = matching_crew.kickoff(inputs={
             "job_json": _stringify_job(job),
             "cvs_json": _stringify_candidates(),
         })
-
         return _normalize_response(result, job)
-        
     except Exception as e:
         print(f"CrewAI Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
         
 def structure_candidate(candidate: dict) -> dict:

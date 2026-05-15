@@ -68,10 +68,26 @@ export default function TalentMatchPage() {
     }
   }, [jobDescription]);
 
-  const handleViewProfile = useCallback((candidate: CandidateMatch) => {
-    setSelectedCandidate(candidate);
-    setIsDetailsOpen(true);
-  }, []);
+  const handleViewProfile = useCallback(async (candidate: CandidateMatch) => {
+  setSelectedCandidate({ ...candidate, summary: "Generating AI summary based on profile..." });
+  setIsDetailsOpen(true);
+
+  try {
+    // Faz o fetch ao endpoint GET /candidates/:id que corre o 4º agente
+    const response = await talentMatchApi.getCandidateDetails(candidate.id);
+    
+    // Atualiza o estado com o summary gerado
+    setSelectedCandidate(prev => 
+      prev ? { ...prev, summary: response.candidate.summary } : null
+    );
+  } catch (err) {
+    console.error("Failed to fetch candidate details", err);
+    // Em caso de erro, avisa o utilizador
+    setSelectedCandidate(prev => 
+      prev ? { ...prev, summary: "Failed to generate AI summary." } : null
+    );
+  }
+}, []);
 
   const handleCloseDetails = useCallback(() => {
     setIsDetailsOpen(false);
