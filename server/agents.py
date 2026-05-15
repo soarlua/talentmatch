@@ -14,24 +14,73 @@ llm = ChatGroq(
 )
 
 def create_matching_crew(job_data: str, candidates_data: str):
-    # Agente 1: O Analista Técnico
-    screener = Agent(
-        role='Tech Recruiter',
-        goal='Analisar a descrição da vaga e o perfil dos candidatos para encontrar as correspondências técnicas exatas.',
-        backstory='És um recrutador técnico sénior. O teu olhar clínico deteta rapidamente se as skills de um candidato batem certo com o que a vaga exige.',
+    job_analyzer = Agent(
+        role="Senior Job Requirements Analyst",
+        goal=(
+            "Read job descriptions and produce a normalized list of requirements "
+            "(technical skills, experience, certifications, languages) each with its "
+            "priority (mandatory, important, optional)."
+        ),
+        backstory=(
+            "You are a technical recruiter with 15 years of experience in consulting. "
+            "You have a special talent for decomposing messy job descriptions into "
+            "clear, categorized requirements, distinguishing what is truly essential "
+            "from what is merely desirable."
+        ),
         llm=llm,
+        allow_delegation=False,
         verbose=True,
-        allow_delegation=False
     )
-
-    # Agente 2: O Diretor de RH (Ranker)
-    manager = Agent(
-        role='Diretor de RH',
-        goal='Avaliar a análise técnica e criar um ranking final justificado dos melhores candidatos.',
-        backstory='És o decisor final. Gostas de relatórios diretos, claros e ordenados do melhor para o pior candidato, sempre com uma justificação.',
+ 
+    cv_parser = Agent(
+        role="CV Data Extraction Specialist",
+        goal=(
+            "For each candidate, extract a structured profile with skills, years of "
+            "experience per area, past roles, certifications, and languages."
+        ),
+        backstory=(
+            "You have read thousands of CVs. You see past buzzwords and identify real "
+            "evidence of competence (years using the technology, type of projects, "
+            "responsibilities). You never invent data that is not in the CV."
+        ),
         llm=llm,
+        allow_delegation=False,
         verbose=True,
-        allow_delegation=False
+    )
+ 
+    matcher = Agent(
+        role="Candidate-Job Compatibility Evaluator",
+        goal=(
+            "Compare each candidate against the job and compute a match score from 0 "
+            "to 100, with a breakdown per criterion (skills, experience, extras). "
+            "Explicitly list fulfilled requirements and missing requirements, giving "
+            "more weight to mandatory requirements."
+        ),
+        backstory=(
+            "You are a talent acquisition analyst focused on fairness and rigor. You "
+            "heavily penalize the absence of mandatory requirements, give moderate "
+            "weight to important ones, and light weight to optional ones. You always "
+            "back the score with facts."
+        ),
+        llm=llm,
+        allow_delegation=False,
+        verbose=True,
+    )
+ 
+    explainer = Agent(
+        role="Hiring Recommendation Communicator",
+        goal=(
+            "Produce a clear, concise explanation in English justifying each "
+            "candidate's score, highlighting strengths (fulfilled requirements) and "
+            "gaps (missing requirements). Sort the final ranking by score descending."
+        ),
+        backstory=(
+            "You report to busy hiring managers. You write short, factual, actionable "
+            "explanations — no jargon, no fluff, always grounded in the match data."
+        ),
+        llm=llm,
+        allow_delegation=False,
+        verbose=True,
     )
 
     # Tarefas
@@ -64,7 +113,7 @@ def create_matching_crew(job_data: str, candidates_data: str):
     )
 
     return Crew(
-        agents=[screener, manager],
+        agents=[job_analyzer, cv_parser, matcher, explainer],
         tasks=[task_analyze, task_rank],
         process=Process.sequential
     )
