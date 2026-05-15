@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,12 +26,12 @@ function getScoreColor(score: number): string {
   return 'text-muted-foreground';
 }
 
-export function CandidateDetailsPanel({
+export const CandidateDetailsPanel = memo(({
   candidate,
   isOpen,
   onClose,
   requiredExperience
-}: CandidateDetailsPanelProps) {
+}: CandidateDetailsPanelProps) => {
   if (!candidate) return null;
 
   return (
@@ -138,4 +139,6 @@ export function CandidateDetailsPanel({
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+CandidateDetailsPanel.displayName = 'CandidateDetailsPanel';

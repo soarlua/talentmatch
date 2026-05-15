@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, memo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,8 +26,11 @@ function getScoreBackground(score: number): string {
   return 'bg-muted/50';
 }
 
-export function ResultsTable({ candidates, onViewProfile }: ResultsTableProps) {
-  const sortedCandidates = [...candidates].sort((a, b) => b.matchScore - a.matchScore);
+export const ResultsTable = memo(({ candidates, onViewProfile }: ResultsTableProps) => {
+  const sortedCandidates = useMemo(() => 
+    [...candidates].sort((a, b) => b.matchScore - a.matchScore),
+    [candidates]
+  );
 
   return (
     <Card className="border-border/50">
@@ -90,4 +94,6 @@ export function ResultsTable({ candidates, onViewProfile }: ResultsTableProps) {
       </CardContent>
     </Card>
   );
-}
+});
+
+ResultsTable.displayName = 'ResultsTable';
