@@ -66,23 +66,33 @@ async def match_candidates(job: JobDescription):
         result = matching_crew.kickoff()
 
         # Extract structured output
-        # Depending on CrewAI version, result.json_dict or result.json might be available
-        # or we might need to parse result.raw
+        # CrewAI 1.x CrewOutput objects have pydantic, json_dict, and raw attributes
         
-        if hasattr(result, 'json_dict') and result.json_dict:
-            return result.json_dict
+        final_data = None
         
-        # Fallback parsing if json_dict is not available
-        try:
-            return json.loads(result.raw)
-        except:
-            # If all else fails, return what we have
-            return {
-                "candidates": [],
-                "jobTitle": job.job_title,
-                "totalProcessed": len(MOCK_CANDIDATES),
-                "raw_result": str(result)
-            }
+        if hasattr(result, 'pydantic') and result.pydantic:
+            final_data = result.pydantic.model_dump()
+        elif hasattr(result, 'json_dict') and result.json_dict:
+            final_data = result.json_dict
+        else:
+            # Fallback parsing if structured attributes are not available
+            try:
+                final_data = json.loads(result.raw)
+            except Exception as parse_err:
+                print(f"Failed to parse raw output as JSON: {parse_err}")
+                print(f"Raw output: {result.raw}")
+        
+        if final_data:
+            return final_data
+            
+        # If all extraction methods fail, return a structured error response
+        return {
+            "candidates": [],
+            "jobTitle": job.job_title,
+            "totalProcessed": len(MOCK_CANDIDATES),
+            "error": "AI failed to produce a structured ranking. Please try again.",
+            "raw_debug": str(result)[:500] # Include snippet for debugging
+        }
 
     except Exception as e:
         print(f"CrewAI Error: {e}")
