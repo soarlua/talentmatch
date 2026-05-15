@@ -13,7 +13,7 @@ MODEL = "groq/meta-llama/llama-4-scout-17b-16e-instruct"
 # ==========================================
 def create_scoring_crew():
     job_analyzer = Agent(
-        role="Senior Job Requirements Analyst",
+        role="Job Analyzer",
         goal="Read job descriptions and produce a normalized list of requirements each with its priority.",
         backstory="You are a technical recruiter with 15 years of experience. You extract clear requirements and distinguish essential from desirable.",
         llm=MODEL,
@@ -22,7 +22,7 @@ def create_scoring_crew():
     )
     
     profile_parser = Agent(
-        role="Profile Data Extraction Specialist",
+        role="Profile Parser",
         goal="For each candidate, extract a structured profile with skills, years of experience, and roles.",
         backstory="You read profiles and identify real evidence of competence without inventing data.",
         llm=MODEL,
@@ -31,7 +31,7 @@ def create_scoring_crew():
     )
  
     matcher = Agent(
-        role="Candidate-Job Compatibility Evaluator",
+        role="Matcher",
         goal="Compare candidate vs job and compute a match score (0-100). Output the final JSON list of candidates.",
         backstory="You heavily penalize the absence of mandatory requirements. You calculate scores meticulously based on the weights.",
         llm=MODEL,
@@ -76,7 +76,7 @@ def create_scoring_crew():
 # ==========================================
 def create_explainer_crew():
     explainer = Agent(
-        role="Hiring Recommendation Communicator",
+        role="Explainer",
         goal="Produce a clear, concise explanation justifying why a candidate is a good or bad fit.",
         backstory="You report to busy hiring managers. You write short, factual, actionable explanations based on candidate data.",
         llm=MODEL,
