@@ -14,7 +14,7 @@ MODEL = "groq/llama-3.1-8b-instant"
 class CandidateMatchOutput(BaseModel):
     id: str
     name: str
-    matchScore: int
+    matchScore: float
     summary: str
     matchedSkills: List[str]
     missingRequirements: List[str]
@@ -26,7 +26,7 @@ class MatchingResponse(BaseModel):
     jobTitle: str
     totalProcessed: int
 
-def create_matching_crew(job_data: str, candidates_data: str):
+def create_matching_crew():
     job_analyzer = Agent(
         role="Senior Job Requirements Analyst",
         goal=(
@@ -40,7 +40,7 @@ def create_matching_crew(job_data: str, candidates_data: str):
             "clear, categorized requirements, distinguishing what is truly essential "
             "from what is merely desirable."
         ),
-        llm=llm,
+        llm=MODEL,
         allow_delegation=False,
         verbose=True,
     )
@@ -56,7 +56,7 @@ def create_matching_crew(job_data: str, candidates_data: str):
             "evidence of competence (years using the technology, type of projects, "
             "responsibilities). You never invent data that is not in the CV."
         ),
-        llm=llm,
+        llm=MODEL,
         allow_delegation=False,
         verbose=True,
     )
@@ -75,7 +75,7 @@ def create_matching_crew(job_data: str, candidates_data: str):
             "weight to important ones, and light weight to optional ones. You always "
             "back the score with facts."
         ),
-        llm=llm,
+        llm=MODEL,
         allow_delegation=False,
         verbose=True,
     )
@@ -91,24 +91,9 @@ def create_matching_crew(job_data: str, candidates_data: str):
             "You report to busy hiring managers. You write short, factual, actionable "
             "explanations — no jargon, no fluff, always grounded in the match data."
         ),
-        llm=llm,
+        llm=MODEL,
         allow_delegation=False,
         verbose=True,
-    )
-
-    # Tarefas
-    task_analyze = Task(
-        description=f"""
-        Analisa a seguinte vaga:
-        {job_data}
-
-        E cruza com estes candidatos:
-        {candidates_data}
-
-        Identifica os pontos fortes e fracos de cada candidato em relação à vaga.
-        """,
-        expected_output="Uma avaliação técnica de cada candidato face aos requisitos.",
-        agent=screener
     )
 
     analyze_job = Task(
@@ -125,7 +110,7 @@ def create_matching_crew(job_data: str, candidates_data: str):
             'Strict JSON with the shape: {"job_id": "...", "title": "...", '
             '"requirements": [{"name": "...", "type": "...", "priority": "...", "value": "..."}]}'
         ),
-        agent=agents["job_analyzer"],
+        agent=job_analyzer,
     )
  
     parse_cvs = Task(
@@ -142,7 +127,7 @@ def create_matching_crew(job_data: str, candidates_data: str):
             '"experience_years": {...}, "roles": [...], "certifications": [...], '
             '"languages": [...], "summary": "..."}]}'
         ),
-        agent=agents["cv_parser"],
+        agent=cv_parser,
     )
  
     match_candidates = Task(
@@ -161,40 +146,28 @@ def create_matching_crew(job_data: str, candidates_data: str):
             '"candidate_name": "...", "score": 87.5, "breakdown": {"skills_score": ..., '
             '"experience_score": ..., "extras_score": ...}, "fulfilled": [...], "missing": [...]}]}'
         ),
-        agent=agents["matcher"],
+        agent=matcher,
         context=[analyze_job, parse_cvs],
     )
  
     explain_ranking = Task(
         description=(
             "Take the matcher output and produce the final ranking ordered by score "
-            "descending. For each candidate, add an 'explanation' field with 2-3 "
-            "sentences in English justifying the score (strengths + gaps).\n\n"
-            "Keep all original fields (cv_id, candidate_name, score, breakdown, "
-            "fulfilled, missing) and add 'explanation'."
+            "descending. For each candidate, convert the result into the final API "
+            "shape expected by the frontend.\n\n"
+            "Each candidate must include: id, name, matchScore, summary, "
+            "matchedSkills, missingRequirements, experienceYears, linkedinUrl.\n"
+            "Use the matcher output as the source of truth for score, fulfilled, and "
+            "missing requirements, and write a short factual summary in English."
         ),
         expected_output=(
-            'Strict JSON: {"job_id": "...", "job_title": "...", "results": '
-            '[{"cv_id": "...", "candidate_name": "...", "score": ..., "breakdown": {...}, '
-            '"fulfilled": [...], "missing": [...], "explanation": "..."}]} '
-            "with results sorted by score desc."
+            'Strict JSON: {"jobTitle": "...", "totalProcessed": 0, "candidates": '
+            '[{"id": "...", "name": "...", "matchScore": 87.5, "summary": "...", '
+            '"matchedSkills": [...], "missingRequirements": [...], "experienceYears": 0, '
+            '"linkedinUrl": "..."}]} with candidates sorted by matchScore desc.'
         ),
-        agent=agents["explainer"],
+        agent=explainer,
         context=[analyze_job, match_candidates],
-    )
-
-    task_rank = Task(
-        description="""
-        Com base na avaliação técnica, cria um ranking dos candidatos (do 1º lugar ao último).
-        Gera uma lista estruturada de candidatos com pontuações de match (0-100), 
-        resumo executivo, competências correspondentes e requisitos em falta.
-
-        Certifica-te de incluir o linkedinUrl (usa https://linkedin.com/in/placeholder se não existir)
-        e os anos de experiência para cada candidato.
-        """,
-        expected_output="Uma lista estruturada de rankings de candidatos em formato JSON.",
-        output_json=MatchingResponse,
-        agent=manager
     )
 
     return Crew(
