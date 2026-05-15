@@ -1,0 +1,25 @@
+{
+  "job_title": "Frontend Developer",
+  "candidates": [
+    {
+      "name": "Candidate A",
+      "score": 87,
+      "match_details": {
+        "skills": "React ✅, Angular ❌",
+        "experience": "3 years ✅",
+        "language": "English B2 ✅"
+      },
+      "gaps": ["No Angular experience"]
+    },
+    {
+      "name": "Candidate B",
+      "score": 72,
+      "match_details": {
+        "skills": "React ✅, Angular ✅",
+        "experience": "2 years ❌",
+        "language": "English B1 ❌"
+      },
+      "gaps": ["Less experience than required", "Lower language level"]
+    }
+  ]
+}

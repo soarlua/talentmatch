@@ -1,0 +1,15 @@
+{
+  "job_title": "Frontend Developer",
+  "requirements": [
+    { "skill": "React", "priority": "mandatory" },
+    { "skill": "Angular", "priority": "optional" }
+  ],
+  "experience": {
+    "years": 3,
+    "priority": "mandatory"
+  },
+  "extras": [
+    { "type": "certification", "value": "AWS", "priority": "optional" },
+    { "type": "language", "value": "English B2", "priority": "mandatory" }
+  ]
+}
