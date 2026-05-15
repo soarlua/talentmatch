@@ -33,10 +33,15 @@ async def health_check():
 @app.get("/candidates/{candidate_id}")
 async def get_candidate(candidate_id: str):
     """Returns details for a specific candidate."""
-    candidate = MOCK_CANDIDATES.get(candidate_id)
+    
+    candidate = MOCK_CANDIDATES.get(str(candidate_id))
+
     if not candidate:
-        raise HTTPException(status_code=404, detail="Candidate not found.")
-    return candidate
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    structured = structure_candidate(candidate)
+    return structured
+
 
 # 3. Match Candidates (CrewAI)
 @app.post("/match")
@@ -82,3 +87,21 @@ async def match_candidates(job: JobDescription):
     except Exception as e:
         print(f"CrewAI Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+        
+def structure_candidate(candidate: dict) -> dict:
+    """
+    Optional: structure or enrich candidate info
+    (useful if you're planning to plug LangChain later 😉)
+    """
+    return {
+        "id": candidate["id"],
+        "profile": {
+            "name": candidate["name"],
+            "role": candidate["role"],
+            "experience": candidate["experience"]
+        },
+        "skills": candidate["skills"],
+        "summary": f"{candidate['name']} is a {candidate['role']} with skills in {', '.join(candidate['skills'])}."
+    }
