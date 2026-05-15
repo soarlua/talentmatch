@@ -1,19 +1,15 @@
 import os
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
-from langchain_groq import ChatGroq
 from pydantic import BaseModel
 from typing import List
 
 # Carregar variáveis de ambiente (necessário para a chave do Groq)
 load_dotenv()
 
-# Configuração do LLM
-llm = ChatGroq(
-    api_key=os.getenv("GROQ_API_KEY"),
-    model_name="llama3-70b-8192",
-    temperature=0.1
-)
+# We set the LLM as a string for CrewAI 1.x (LiteLLM under the hood)
+# This is more robust against Pydantic validation mismatches
+MODEL = "groq/llama-3.1-8b-instant"
 
 class CandidateMatchOutput(BaseModel):
     id: str
