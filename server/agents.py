@@ -115,6 +115,78 @@ def create_matching_crew(job_data: str, candidates_data: str):
         agent=screener
     )
 
+    analyze_job = Task(
+        description=(
+            "Analyze the following job and return a JSON with normalized requirements.\n\n"
+            "JOB:\n{job_json}\n\n"
+            "Rules:\n"
+            "- Each requirement has: name, type (skill|experience|certification|language|other), "
+            "priority (mandatory|important|optional), value.\n"
+            "- If the job does not state a priority, infer it from context.\n"
+            "- Do not invent requirements that are not in the description."
+        ),
+        expected_output=(
+            'Strict JSON with the shape: {"job_id": "...", "title": "...", '
+            '"requirements": [{"name": "...", "type": "...", "priority": "...", "value": "..."}]}'
+        ),
+        agent=agents["job_analyzer"],
+    )
+ 
+    parse_cvs = Task(
+        description=(
+            "For each CV in the list below, extract a structured profile.\n\n"
+            "CVs:\n{cvs_json}\n\n"
+            "Rules:\n"
+            "- Each profile has: id, name, skills (list), experience_years (map area->years), "
+            "roles (list), certifications (list), languages (list), summary (short).\n"
+            "- Do not invent information. If something is not in the CV, omit it or use an empty list."
+        ),
+        expected_output=(
+            'Strict JSON: {"profiles": [{"id": "...", "name": "...", "skills": [...], '
+            '"experience_years": {...}, "roles": [...], "certifications": [...], '
+            '"languages": [...], "summary": "..."}]}'
+        ),
+        agent=agents["cv_parser"],
+    )
+ 
+    match_candidates = Task(
+        description=(
+            "Compare each candidate profile (output of the previous task) against the "
+            "job requirements (output of the first task). For each candidate, compute:\n"
+            "- score: 0-100 (weighted average — mandatory weighs 60%, important 30%, optional 10%)\n"
+            "- breakdown: {skills_score, experience_score, extras_score} (each 0-100)\n"
+            "- fulfilled: list of names of fulfilled requirements\n"
+            "- missing: list of names of missing requirements\n\n"
+            "Heavily penalize the absence of mandatory requirements. Be factual: only "
+            "mark a requirement as fulfilled if the profile has clear evidence."
+        ),
+        expected_output=(
+            'Strict JSON: {"job_id": "...", "matches": [{"cv_id": "...", '
+            '"candidate_name": "...", "score": 87.5, "breakdown": {"skills_score": ..., '
+            '"experience_score": ..., "extras_score": ...}, "fulfilled": [...], "missing": [...]}]}'
+        ),
+        agent=agents["matcher"],
+        context=[analyze_job, parse_cvs],
+    )
+ 
+    explain_ranking = Task(
+        description=(
+            "Take the matcher output and produce the final ranking ordered by score "
+            "descending. For each candidate, add an 'explanation' field with 2-3 "
+            "sentences in English justifying the score (strengths + gaps).\n\n"
+            "Keep all original fields (cv_id, candidate_name, score, breakdown, "
+            "fulfilled, missing) and add 'explanation'."
+        ),
+        expected_output=(
+            'Strict JSON: {"job_id": "...", "job_title": "...", "results": '
+            '[{"cv_id": "...", "candidate_name": "...", "score": ..., "breakdown": {...}, '
+            '"fulfilled": [...], "missing": [...], "explanation": "..."}]} '
+            "with results sorted by score desc."
+        ),
+        agent=agents["explainer"],
+        context=[analyze_job, match_candidates],
+    )
+
     task_rank = Task(
         description="""
         Com base na avaliação técnica, cria um ranking dos candidatos (do 1º lugar ao último).
@@ -131,6 +203,6 @@ def create_matching_crew(job_data: str, candidates_data: str):
 
     return Crew(
         agents=[job_analyzer, cv_parser, matcher, explainer],
-        tasks=[task_analyze, task_rank],
+        tasks=[analyze_job, parse_cvs, match_candidates, explain_ranking],
         process=Process.sequential
     )
