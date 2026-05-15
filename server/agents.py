@@ -21,10 +21,10 @@ def create_scoring_crew():
         verbose=True,
     )
     
-    cv_parser = Agent(
-        role="CV Data Extraction Specialist",
+    profile_parser = Agent(
+        role="Profile Data Extraction Specialist",
         goal="For each candidate, extract a structured profile with skills, years of experience, and roles.",
-        backstory="You read CVs and identify real evidence of competence without inventing data.",
+        backstory="You read profiles and identify real evidence of competence without inventing data.",
         llm=MODEL,
         allow_delegation=False,
         verbose=True,
@@ -45,10 +45,10 @@ def create_scoring_crew():
         agent=job_analyzer,
     )
  
-    parse_cvs = Task(
-        description="For each CV, extract a structured profile.\nCVs:\n{cvs_json}\n\nIMPORTANT: Do NOT write javascript or python scripts. Do the extraction mentally and output only the raw JSON.",
+    parse_profiles = Task(
+        description="For each profile, extract a structured profile.\nprofiles:\n{cvs_json}\n\nIMPORTANT: Do NOT write javascript or python scripts. Do the extraction mentally and output only the raw JSON.",
         expected_output='Strict JSON: {"profiles": [{"id": "...", "name": "...", "skills": [...], "experience_years": 0}]}',
-        agent=cv_parser,
+        agent=profile_parser,
     )
  
     match_candidates = Task(
@@ -62,12 +62,12 @@ def create_scoring_crew():
             '[{"id": "...", "name": "...", "matchScore": 87, "matchedSkills": [...], "missingRequirements": [...], "experienceYears": 0, "linkedinUrl": "..."}]}'
         ),
         agent=matcher,
-        context=[analyze_job, parse_cvs],
+        context=[analyze_job, parse_profiles],
     )
 
     return Crew(
-        agents=[job_analyzer, cv_parser, matcher],
-        tasks=[analyze_job, parse_cvs, match_candidates],
+        agents=[job_analyzer, profile_parser, matcher],
+        tasks=[analyze_job, parse_profiles, match_candidates],
         process=Process.sequential
     )
 
