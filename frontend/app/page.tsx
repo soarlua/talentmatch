@@ -6,7 +6,7 @@ import { JobInputSection } from '@/components/job-input-section';
 import { ProcessingState } from '@/components/processing-state';
 import { ResultsTable } from '@/components/results-table';
 import { sampleJobDescription, type CandidateMatch, type JobDescription } from '@/lib/types';
-import { talentMatchApi, parseJobDescription, ApiError } from '@/lib/api';
+import { talentMatchApi, parseJobDescription, parsePlainTextJobDescription, ApiError } from '@/lib/api';
 import { Sparkles, BrainCircuit } from 'lucide-react';
 
 const CandidateDetailsPanel = dynamic(
@@ -38,14 +38,12 @@ export default function TalentMatchPage() {
         return;
       }
     } else {
-      // For plaintext, we create a simplified JobDescription 
-      // In a real app, the backend would use LLM to extract these
-      parsed = {
-        job_title: "Analyzed Requirements",
-        requirements: [{ skill: jobDescription.substring(0, 100), priority: "mandatory" }],
-        experience: { years: 0, priority: "optional" },
-        extras: []
-      };
+      try {
+        parsed = parsePlainTextJobDescription(jobDescription);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to parse plain text job description');
+        return;
+      }
     }
 
     setParsedJob(parsed);

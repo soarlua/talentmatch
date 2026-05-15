@@ -4,8 +4,9 @@ from crewai import Agent, Task, Crew, Process
 
 load_dotenv()
 
-# 1. Usar o modelo de 70B para melhor raciocínio e obediência
-MODEL = "groq/llama-3.1-8b-instant"
+# We set the LLM as a string for CrewAI 1.x (LiteLLM under the hood)
+# This is more robust against Pydantic validation mismatches
+MODEL = "groq/meta-llama/llama-4-scout-17b-16e-instruct"
 
 # ==========================================
 # CREW 1: MATCHING (3 Agentes)

@@ -185,3 +185,25 @@ export function parseJobDescription(jsonString: string): JobDescription {
     throw error;
   }
 }
+
+/**
+ * Helper to parse plain text job input into a minimal JobDescription.
+ * This keeps required experience in sync with what the user typed.
+ */
+export function parsePlainTextJobDescription(text: string): JobDescription {
+  const normalized = text.trim();
+  if (!normalized) {
+    throw new Error('Job description cannot be empty.');
+  }
+
+  const yearsMatch = normalized.match(/(\d+)\s*\+?\s*(years?|yrs?|anos?)/i);
+  const years = yearsMatch ? Number.parseInt(yearsMatch[1], 10) : 0;
+  const priority: 'mandatory' | 'optional' = years > 0 ? 'mandatory' : 'optional';
+
+  return {
+    job_title: 'Analyzed Requirements',
+    requirements: [{ skill: normalized.substring(0, 120), priority: 'mandatory' }],
+    experience: { years, priority },
+    extras: [],
+  };
+}

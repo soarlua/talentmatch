@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import ast
 import json
 import re
 from typing import Any, Dict, List
@@ -73,6 +74,45 @@ def _extract_first_json_fragment(text: str) -> str:
     raise ValueError("No JSON object found in agent output.")
 
 
+def _decode_json_text(text: str) -> Any:
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Common LLM issue: trailing commas in objects/arrays.
+    without_trailing_commas = re.sub(r",\s*([}\]])", r"\1", text)
+    if without_trailing_commas != text:
+        try:
+            return json.loads(without_trailing_commas)
+        except json.JSONDecodeError:
+            pass
+
+    # Common LLM issue: single-quoted Python-like dict/list output.
+    try:
+        literal = ast.literal_eval(text)
+        if isinstance(literal, (dict, list)):
+            return literal
+    except (ValueError, SyntaxError):
+        pass
+
+    fragment = _extract_first_json_fragment(text)
+
+    try:
+        return json.loads(fragment)
+    except json.JSONDecodeError:
+        without_trailing_commas = re.sub(r",\s*([}\]])", r"\1", fragment)
+        if without_trailing_commas != fragment:
+            try:
+                return json.loads(without_trailing_commas)
+            except json.JSONDecodeError:
+                pass
+        literal = ast.literal_eval(fragment)
+        if isinstance(literal, (dict, list)):
+            return literal
+        raise
+
+
 def _load_json_payload(payload: Any) -> Any:
     if payload is None:
         raise ValueError("Empty agent output.")
@@ -95,11 +135,7 @@ def _load_json_payload(payload: Any) -> Any:
         if fence_match:
             text = fence_match.group(1).strip()
 
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            fragment = _extract_first_json_fragment(text)
-            return json.loads(fragment)
+        return _decode_json_text(text)
 
     if hasattr(payload, "model_dump"):
         return payload.model_dump()
@@ -124,7 +160,17 @@ def _linkedin_url(candidate_id: str, candidate_name: str) -> str:
 
 def _string_list(value: Any) -> List[str]:
     if isinstance(value, list):
-        return [str(item) for item in value if item is not None]
+        normalized: List[str] = []
+        for item in value:
+            if item is None:
+                continue
+            if isinstance(item, dict):
+                name = item.get("name")
+                if name:
+                    normalized.append(str(name))
+                continue
+            normalized.append(str(item))
+        return normalized
     return []
 
 
@@ -253,6 +299,14 @@ async def match_candidates(job: JobDescription):
             "cvs_json": _stringify_candidates(),
         })
         return _normalize_response(result, job)
+    except (ValueError, json.JSONDecodeError, SyntaxError) as parse_error:
+        print(f"CrewAI parsing error: {parse_error}")
+        return {
+            "candidates": [],
+            "jobTitle": job.job_title,
+            "totalProcessed": len(MOCK_CANDIDATES),
+            "error": "AI returned malformed structured data. Please try again.",
+        }
     except Exception as e:
         print(f"CrewAI Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

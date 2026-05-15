@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, memo, useState } from 'react';
+import { useMemo, memo, useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,6 +73,11 @@ export const JobInputSection = memo(({
   error
 }: JobInputSectionProps) => {
   const [inputMode, setInputMode] = useState<'text' | 'json'>('text');
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const placeholder = useMemo(() => 
     inputMode === 'json' 
@@ -80,6 +85,8 @@ export const JobInputSection = memo(({
       : "Paste the job description or candidate requirements in plain text. Our AI will extract the key details for matching.",
     [sampleJob, inputMode]
   );
+
+  const isSubmitDisabled = !isHydrated || isProcessing || !jobDescription.trim();
 
   return (
     <Card className="border-border/50 shadow-sm overflow-hidden">
@@ -94,6 +101,7 @@ export const JobInputSection = memo(({
           </div>
           <div className="flex bg-secondary/50 p-1 rounded-lg border border-border/50">
             <button
+              type="button"
               onClick={() => setInputMode('text')}
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all",
@@ -106,6 +114,7 @@ export const JobInputSection = memo(({
               Plain Text
             </button>
             <button
+              type="button"
               onClick={() => setInputMode('json')}
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all",
@@ -151,8 +160,9 @@ export const JobInputSection = memo(({
         )}
         
         <Button
+          type="button"
           onClick={() => onRunMatching(inputMode)}
-          disabled={isProcessing || !jobDescription.trim()}
+          disabled={isSubmitDisabled}
           className="w-full bg-[#A100FF] hover:bg-[#8B00DD] text-white shadow-lg shadow-purple-500/20 h-12 text-base font-semibold transition-all hover:scale-[1.01] active:scale-[0.99]"
           size="lg"
         >
