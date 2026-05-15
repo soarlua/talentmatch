@@ -11,9 +11,9 @@ import type {
  * Set NEXT_PUBLIC_API_BASE_URL in your .env.local file:
  * NEXT_PUBLIC_API_BASE_URL=https://your-api-domain.com/api
  * 
- * If not set, defaults to '/api' for local Next.js API routes
+ * If not set, defaults to 'http://localhost:8000' for the local backend
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 /**
  * API Error class for handling API-specific errors

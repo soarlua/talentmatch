@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
 from langchain_groq import ChatGroq
+from pydantic import BaseModel
+from typing import List
 
 # Carregar variáveis de ambiente (necessário para a chave do Groq)
 load_dotenv()
@@ -12,6 +14,21 @@ llm = ChatGroq(
     model_name="llama3-70b-8192",
     temperature=0.1
 )
+
+class CandidateMatchOutput(BaseModel):
+    id: str
+    name: str
+    matchScore: int
+    summary: str
+    matchedSkills: List[str]
+    missingRequirements: List[str]
+    experienceYears: int
+    linkedinUrl: str
+
+class MatchingResponse(BaseModel):
+    candidates: List[CandidateMatchOutput]
+    jobTitle: str
+    totalProcessed: int
 
 def create_matching_crew(job_data: str, candidates_data: str):
     job_analyzer = Agent(
@@ -88,10 +105,10 @@ def create_matching_crew(job_data: str, candidates_data: str):
         description=f"""
         Analisa a seguinte vaga:
         {job_data}
-        
+
         E cruza com estes candidatos:
         {candidates_data}
-        
+
         Identifica os pontos fortes e fracos de cada candidato em relação à vaga.
         """,
         expected_output="Uma avaliação técnica de cada candidato face aos requisitos.",
@@ -101,14 +118,14 @@ def create_matching_crew(job_data: str, candidates_data: str):
     task_rank = Task(
         description="""
         Com base na avaliação técnica, cria um ranking dos candidatos (do 1º lugar ao último).
-        Para cada um, fornece:
-        1. O Nome e ID.
-        2. A percentagem estimada de "Match".
-        3. Uma justificação curta do porquê dessa posição.
-        
-        Gera a resposta em Markdown limpo.
+        Gera uma lista estruturada de candidatos com pontuações de match (0-100), 
+        resumo executivo, competências correspondentes e requisitos em falta.
+
+        Certifica-te de incluir o linkedinUrl (usa https://linkedin.com/in/placeholder se não existir)
+        e os anos de experiência para cada candidato.
         """,
-        expected_output="Ranking final formatado em Markdown com percentagens de match.",
+        expected_output="Uma lista estruturada de rankings de candidatos em formato JSON.",
+        output_json=MatchingResponse,
         agent=manager
     )
 
