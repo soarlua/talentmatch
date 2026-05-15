@@ -16,11 +16,8 @@ UI Requirements:
 - Clean and professional layout (corporate style)
 
 2. Input Section
-- Upload job description (file upload or text box)
-- Upload candidate profiles dataset (multiple CVs or JSON)
-- Optional filters:
-  - Minimum experience
-  - Required skills
+- Helper text guidelines, to help the recruiter fill the text box based on the provided INPUT.json
+- Upload job description (text box)
 - Button: "Run Matching"
 
 3. Processing State
@@ -32,21 +29,22 @@ UI Requirements:
   Columns:
   - Candidate Name
   - Match Score (0–100)
-  - Key Skills Match
-  - Experience Match
+  - View Profile Button
 - Sort by score (descending)
 
 5. Candidate Details Panel
 - On row click:
-  - Show detailed explanation:
+  - Show popup card with detailed explanation:
+    - executive summary of the candidate
     - Matched skills ✅
     - Missing requirements ❌
     - Experience comparison
+    - Linkedin profile button
   - Simple visual indicators (green/red)
 
 6. Design Style
 - Minimal, modern, enterprise look
-- Neutral colors (white, gray, blue accents)
+- Neutral colors (white, gray, accenture purple accents)
 - Rounded cards and clean spacing
 - Responsive layout
 
@@ -57,4 +55,4 @@ UI Requirements:
 
 Goal:
 The UI must clearly demonstrate the value of the system during a live demo:
-Upload → Click → See ranked results with explanation.
+Input → Click → See ranked results with explanation.
