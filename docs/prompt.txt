@@ -1,0 +1,58 @@
+Create a clean, modern web UI for an AI-powered recruitment matching platform.
+
+Context:
+The platform helps recruitment teams reduce dependency on external agencies by automatically matching candidates to job openings. Currently, recruiters manually search and evaluate candidates, which is time-consuming, costly, and not scalable.
+
+Objective:
+Design a simple but functional interface that demonstrates the core flow:
+input → processing → ranked output
+
+UI Requirements:
+
+1. Main Screen (Dashboard)
+- Title: "TalentMatch AI"
+- Short description explaining the product:
+  "Automatically match candidates to job openings using AI-based analysis of skills, experience, and requirements."
+- Clean and professional layout (corporate style)
+
+2. Input Section
+- Helper text guidelines, to help the recruiter fill the text box based on the provided INPUT.json
+- Upload job description (text box)
+- Button: "Run Matching"
+
+3. Processing State
+- Show loading indicator:
+  "Analyzing candidates and matching profiles..."
+
+4. Results Section
+- Table displaying ranked candidates:
+  Columns:
+  - Candidate Name
+  - Match Score (0–100)
+  - View Profile Button
+- Sort by score (descending)
+
+5. Candidate Details Panel
+- On row click:
+  - Show popup card with detailed explanation:
+    - executive summary of the candidate
+    - Matched skills ✅
+    - Missing requirements ❌
+    - Experience comparison
+    - Linkedin profile button
+  - Simple visual indicators (green/red)
+
+6. Design Style
+- Minimal, modern, enterprise look
+- Neutral colors (white, gray, accenture purple accents)
+- Rounded cards and clean spacing
+- Responsive layout
+
+7. Technical constraints
+- Keep UI simple and demo-ready
+- No authentication required
+- No complex navigation (single-page app preferred)
+
+Goal:
+The UI must clearly demonstrate the value of the system during a live demo:
+Input → Click → See ranked results with explanation.
