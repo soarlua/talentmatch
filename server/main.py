@@ -1,15 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import json
 
-# Imports locais (dos teus outros ficheiros)
+# Local imports
 from models import JobDescription
 from mock_db import MOCK_CANDIDATES
 from agents import create_matching_crew
 
-# Inicializar app
-app = FastAPI(title="Hackathon MVP - HR Matcher API")
+# Initialize app
+app = FastAPI(title="TalentMatch AI - Matcher API")
 
-# Configurar CORS
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,36 +26,59 @@ app.add_middleware(
 # 1. Health Check
 @app.get("/health")
 async def health_check():
-    """Verifica se a API está online."""
-    return {"status": "ok", "message": "Servidor a correr!"}
+    """Checks if the API is online."""
+    return {"status": "ok", "message": "Server is running!"}
 
-# 2. Obter Info do Candidato
+# 2. Get Candidate Info
 @app.get("/candidates/{candidate_id}")
 async def get_candidate(candidate_id: str):
-    """Devolve os detalhes de um candidato específico."""
+    """Returns details for a specific candidate."""
     candidate = MOCK_CANDIDATES.get(candidate_id)
     if not candidate:
-        raise HTTPException(status_code=404, detail="Candidato não encontrado.")
+        raise HTTPException(status_code=404, detail="Candidate not found.")
     return candidate
 
-# 3. Fazer o Match (CrewAI)
+# 3. Match Candidates (CrewAI)
 @app.post("/match")
 async def match_candidates(job: JobDescription):
-    """Submete uma vaga e a AI devolve o ranking dos candidatos."""
+    """Submits a job and AI returns candidate ranking."""
     try:
-        # Converter dados para string para os agentes lerem
-        job_data_str = f"Título: {job.title}\nDescrição: {job.description}\nRequisitos: {', '.join(job.requirements)}"
+        # Convert data to string for agents to read
+        job_data_str = f"Title: {job.job_title}\n"
+        job_data_str += "Requirements:\n"
+        for r in job.requirements:
+            job_data_str += f"- {r.skill} ({r.priority})\n"
+        job_data_str += f"Experience Required: {job.experience.years} years ({job.experience.priority})\n"
+        if job.extras:
+            job_data_str += "Extras:\n"
+            for e in job.extras:
+                job_data_str += f"- {e.type}: {e.value} ({e.priority})\n"
+
         candidates_data_str = str(MOCK_CANDIDATES)
 
-        # Chamar a função do ficheiro agents.py
+        # Call agents
         matching_crew = create_matching_crew(job_data_str, candidates_data_str)
         result = matching_crew.kickoff()
 
-        return {
-            "status": "sucesso",
-            "job_analyzed": job.title,
-            "ranking": str(result)
-        }
+        # Extract structured output
+        # Depending on CrewAI version, result.json_dict or result.json might be available
+        # or we might need to parse result.raw
+        
+        if hasattr(result, 'json_dict') and result.json_dict:
+            return result.json_dict
+        
+        # Fallback parsing if json_dict is not available
+        try:
+            return json.loads(result.raw)
+        except:
+            # If all else fails, return what we have
+            return {
+                "candidates": [],
+                "jobTitle": job.job_title,
+                "totalProcessed": len(MOCK_CANDIDATES),
+                "raw_result": str(result)
+            }
+
     except Exception as e:
-        print(f"Erro no CrewAI: {e}")
+        print(f"CrewAI Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
